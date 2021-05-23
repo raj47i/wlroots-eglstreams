@@ -305,3 +305,39 @@ int wlr_renderer_get_drm_fd(struct wlr_renderer *r) {
 	}
 	return r->impl->get_drm_fd(r);
 }
+
+struct wlr_egl *wlr_renderer_get_egl(struct wlr_renderer *r) {
+	if (!r->impl->get_egl) {
+		return NULL;
+	}
+	return r->impl->get_egl(r);
+} 
+
+bool wlr_renderer_wl_buffer_get_params(struct wlr_renderer *r,
+	struct wl_resource *buffer, int *width, int *height, int *inverted_y) {
+	assert(wlr_resource_is_buffer(buffer));
+
+	struct wlr_egl *egl = wlr_renderer_get_egl(r);
+	if (!egl) {
+		return false;
+	}
+
+	if (width && egl->procs.eglQueryWaylandBufferWL(egl->display,
+			buffer, EGL_WIDTH, width) != EGL_TRUE) {
+		wlr_log(WLR_ERROR, "Failed to get resource width");
+		return false;
+	}
+	if (height && egl->procs.eglQueryWaylandBufferWL(egl->display,
+			buffer, EGL_HEIGHT, height) != EGL_TRUE) {
+		wlr_log(WLR_ERROR, "Failed to get resource height");
+		return false;
+	}
+	if (inverted_y && egl->procs.eglQueryWaylandBufferWL(egl->display,
+			buffer, EGL_WAYLAND_Y_INVERTED_WL,
+			inverted_y) != EGL_TRUE) {
+		wlr_log(WLR_ERROR, "Failed to get resource inverted_y");
+		return false;
+	}
+
+	return width || height || inverted_y;
+}

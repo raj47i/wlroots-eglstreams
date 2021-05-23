@@ -18,6 +18,7 @@ void wlr_buffer_init(struct wlr_buffer *buffer,
 	buffer->impl = impl;
 	buffer->width = width;
 	buffer->height = height;
+	buffer->egl_stream = NULL;
 	wl_signal_init(&buffer->events.destroy);
 	wl_signal_init(&buffer->events.release);
 }
@@ -120,6 +121,9 @@ bool wlr_resource_get_buffer_size(struct wl_resource *resource,
 			wlr_dmabuf_v1_buffer_from_buffer_resource(resource);
 		*width = dmabuf->attributes.width;
 		*height = dmabuf->attributes.height;
+	} else if (wlr_renderer_wl_buffer_get_params(renderer,
+			resource, width, height, NULL)) {
+		(void)0;
 	} else {
 		*width = *height = 0;
 		return false;
@@ -244,6 +248,8 @@ struct wlr_client_buffer *wlr_client_buffer_import(
 		// The renderer is responsible for releasing the buffer when
 		// appropriate
 		resource_released = true;
+	} else if ((texture = wlr_texture_from_wl_eglstream(renderer, resource))) {
+		(void)0; // Nothing special is needed for EGLStream texture here
 	} else {
 		wlr_log(WLR_ERROR, "Cannot upload texture: unknown buffer type");
 
